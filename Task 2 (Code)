@@ -1,0 +1,98 @@
+// Pin setup
+const int fsrPin = A0;      // Force sensor
+const int redPin = 2;       // Descending
+const int greenPin = 4;    // Ascending
+const int bluePin = 3;     // Apogee
+const int buzzerPin = 7;    // Buzzer
+
+// Smoothing
+const int numSamples = 10;
+int readings[numSamples];
+int index = 0;
+int total = 0;
+int average = 0;
+int lastAverage = 0;
+
+const int threshold = 5;  // Minimum significant change
+
+// Track state
+enum State {ASCENDING, APOGEE, DESCENDING};
+State currentState = ASCENDING;
+
+void updateState(State newState);
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(fsrPin, INPUT);
+  pinMode(redPin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  pinMode(bluePin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+
+  // Initialize reading array
+  for (int i = 0; i < numSamples; i++) {
+    readings[i] = analogRead(fsrPin);
+    total += readings[i];
+  }
+
+  average = total / numSamples;
+  lastAverage = average;
+}
+
+void loop() {
+  int raw = analogRead(fsrPin);
+
+  // Moving average
+  total = total - readings[index];
+  readings[index] = raw;
+  total = total + readings[index];
+  index = (index + 1) % numSamples;
+
+  average = total / numSamples;
+
+  Serial.print("Avg: ");
+  Serial.println(average);
+
+  // Detect trend
+  int diff = average - lastAverage;
+
+  if (diff > threshold) {
+    updateState(DESCENDING);
+  } else if (diff < -threshold) {
+    updateState(ASCENDING);
+  } else {
+    if (currentState != APOGEE) {
+      updateState(APOGEE);
+      tone(buzzerPin, 1000, 300);  // Beep at apogee
+    }
+  }
+
+  lastAverage = average;
+  delay(200);  // 5 Hz sampling
+}
+
+// Function to change state and set LEDs
+void updateState(State newState) {
+  currentState = newState;
+
+  switch (currentState) {
+    case ASCENDING:
+      digitalWrite(greenPin, HIGH);
+      digitalWrite(redPin, LOW);
+      digitalWrite(bluePin, LOW);
+      break;
+
+    case DESCENDING:
+      digitalWrite(greenPin, LOW);
+      digitalWrite(redPin, HIGH);
+      digitalWrite(bluePin, LOW);
+      break;
+
+    case APOGEE:
+      digitalWrite(greenPin, LOW);
+      digitalWrite(redPin, LOW);
+      digitalWrite(bluePin, HIGH);
+      break;
+  }
+}
