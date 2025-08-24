@@ -1,0 +1,77 @@
+import pandas as pd
+import matplotlib as mp
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+import numpy as np
+
+df = pd.read_csv('/Users/prasa/Downloads/Raw_Test_Flight_Data_25.csv')
+df = df['Pressure (Pa)'].tolist()
+for data in df:
+    if data == '*****':
+        df.pop(df.index(data))
+    
+        
+def pressure_to_altitude(pressures):
+    """
+    Convert a list of pressure values (Pa) to altitudes (m)
+    using the simplified barometric formula.
+    """
+    p0 = 101325  
+    
+    return [44330 * (1 - (float(p) / p0) ** 0.1903) for p in pressures]
+
+
+altitudes = pressure_to_altitude(df)
+time = list(range(len(altitudes)))
+
+def moving_average(data, window_size):
+    smoothed = []
+    for i in range(len(data)):
+        if i < window_size - 1:
+            
+            smoothed.append(data[i])
+        else:
+            window = data[i - window_size + 1:i + 1]
+            smoothed.append(sum(window) / window_size)
+    return smoothed
+
+
+smoothed_altitudes = moving_average(altitudes, window_size=5)
+
+
+velocity = []
+for i in range(len(smoothed_altitudes)-1):
+    velocity.append(smoothed_altitudes[i+1]-smoothed_altitudes[i])
+velocity.append(0)
+
+
+fig, ax = plt.subplots()
+line, = ax.plot([], [], 'b-', marker='o')
+ax.set_xlim(0, len(time))
+ax.set_ylim(0, max(smoothed_altitudes) + 500)
+ax.set_title('Altitude vs Time')
+ax.set_xlabel('Time (seconds)')
+ax.set_ylabel('Altitude (meters)')
+
+def update(frame):
+    line.set_data(time[:frame], smoothed_altitudes[:frame])
+    return line,
+
+
+ani1 = FuncAnimation(fig, update, frames=len(time), interval=1000, blit=True)
+fig2, ax2 = plt.subplots()
+line2, = ax2.plot([], [], 'b-', marker='o')
+ax2.set_xlim(0, len(time))
+ax2.set_ylim(min(velocity) - 100, max(velocity) + 100)
+ax2.set_title('Velocity vs Time')
+ax2.set_xlabel('Time (seconds)')
+ax2.set_ylabel('Velocity (meter/sec)')
+
+def update2(frame):
+    line2.set_data(time[:frame], velocity[:frame])
+    return line2,
+
+ani2 = FuncAnimation(fig2, update2, frames=len(time), interval=1000, blit=True)
+
+
+plt.show()
