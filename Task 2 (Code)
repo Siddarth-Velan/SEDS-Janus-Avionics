@@ -1,11 +1,11 @@
-// Pin setup
-const int fsrPin = A0;      // Force sensor
-const int redPin = 2;       // Descending
-const int greenPin = 4;    // Ascending
-const int bluePin = 3;     // Apogee
-const int buzzerPin = 7;    // Buzzer
 
-// Smoothing
+const int fsrPin = A0;      
+const int redPin = 2;       
+const int greenPin = 4;    
+const int bluePin = 3;    
+const int buzzerPin = 7;    
+
+
 const int numSamples = 10;
 int readings[numSamples];
 int index = 0;
@@ -13,9 +13,9 @@ int total = 0;
 int average = 0;
 int lastAverage = 0;
 
-const int threshold = 5;  // Minimum significant change
+const int threshold = 5;
 
-// Track state
+
 enum State {ASCENDING, APOGEE, DESCENDING};
 State currentState = ASCENDING;
 
@@ -30,7 +30,7 @@ void setup() {
   pinMode(bluePin, OUTPUT);
   pinMode(buzzerPin, OUTPUT);
 
-  // Initialize reading array
+ 
   for (int i = 0; i < numSamples; i++) {
     readings[i] = analogRead(fsrPin);
     total += readings[i];
@@ -43,7 +43,7 @@ void setup() {
 void loop() {
   int raw = analogRead(fsrPin);
 
-  // Moving average
+  
   total = total - readings[index];
   readings[index] = raw;
   total = total + readings[index];
@@ -54,7 +54,7 @@ void loop() {
   Serial.print("Avg: ");
   Serial.println(average);
 
-  // Detect trend
+  
   int diff = average - lastAverage;
 
   if (diff > threshold) {
@@ -72,7 +72,7 @@ void loop() {
   delay(200);  // 5 Hz sampling
 }
 
-// Function to change state and set LEDs
+
 void updateState(State newState) {
   currentState = newState;
 
